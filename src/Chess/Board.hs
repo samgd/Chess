@@ -1,4 +1,19 @@
-module Chess.Board where
+module Chess.Board
+    ( PieceColor (..)
+    , PieceType (..)
+    , Piece (..)
+    , Square
+    , Rank
+    , File
+    , Board
+    , Position
+    , validPosition
+    , initial
+    , fileIndex
+    , square
+    , rank
+    , file
+    ) where
 
 import Data.Char (ord)
 import Data.Maybe
@@ -39,7 +54,10 @@ type File   = [Square]
 type Board  = [Rank]
 
 -- |'Position' is used for indexing a 'Board'.
-type Position = (Int, Char)
+type Position = (Char, Int)
+
+validPosition :: Position -> Bool
+validPosition (file, rank) = (rank > 0 && rank <= 8) && (file >= 'a' && file <= 'h')
 
 -- |'empty' returns an 'Rank'.
 empty :: Rank
@@ -47,7 +65,7 @@ empty = replicate 8 Nothing
 
 -- |'pawns' returns a 'Rank' of 'Pawn's.
 pawns :: PieceColor -> Rank
-pawns c = map (Just . Piece c) (replicate 8 Pawn)
+pawns c = replicate 8 ((Just . Piece c) Pawn)
 
 -- |'initialRank' returns the other, non-pawn, starting 'Rank'.
 initialRank :: PieceColor -> Rank
@@ -62,27 +80,26 @@ initial = [ initialRank Black
           , empty
           , empty
           , pawns       White
-          , initialRank White
-          ]
+          , initialRank White ]
 
 -- |'fileIndex' returns the file index for a given character index.
 -- The character must be 'a'-'h'.
 fileIndex :: Char -> Maybe Int
 fileIndex c = do
-    let n = (ord c) - (ord 'a')
-    guard (n > 0 && n <= 7)
+    let n = ord c - ord 'a'
+    guard (n >= 0 && n <= 7)
     return n
 
 -- |'square' returns the 'Square' at the given 'Position'.
 square :: Board -> Position -> Square
-square b (i, j) = do
+square b (j, i) = do
     r <- rank b i
     n <- fileIndex j
     r !! n
 
 -- |'rank' returns the specified 'Rank' if it exists. 'Rank's are indexed 1-8.
 rank :: Board -> Int -> Maybe Rank
-rank b n = b SL.!! (n - 1)
+rank b n = b SL.!! (8 - n)
 
 -- |'file' returns the specified 'File' if it exists. 'File's are indexed 'a'-'h'.
 file :: Board -> Char -> Maybe File
