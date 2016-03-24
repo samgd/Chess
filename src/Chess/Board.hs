@@ -10,6 +10,7 @@ module Chess.Board
     , validPosition
     , initial
     , fileIndex
+    , rankIndex
     , square
     , rank
     , file
@@ -90,6 +91,14 @@ fileIndex c = do
     guard (n >= 0 && n <= 7)
     return n
 
+-- |'rankIndex' returns the haskell list index for a given rank. (Chess board
+-- numbering is annoyingly reversed.)
+rankIndex :: Int -> Maybe Int
+rankIndex r = do
+    let n = 8 - r
+    guard (n >= 0 && n <= 7)
+    return n
+
 -- |'square' returns the 'Square' at the given 'Position'.
 square :: Board -> Position -> Square
 square b (j, i) = do
@@ -99,11 +108,12 @@ square b (j, i) = do
 
 -- |'rank' returns the specified 'Rank' if it exists. 'Rank's are indexed 1-8.
 rank :: Board -> Int -> Maybe Rank
-rank b n = b SL.!! (8 - n)
+rank b r = do
+    n <- rankIndex r
+    b SL.!! n
 
 -- |'file' returns the specified 'File' if it exists. 'File's are indexed 'a'-'h'.
 file :: Board -> Char -> Maybe File
 file b c = do
     n <- fileIndex c
     return $ map (!! n) b
-

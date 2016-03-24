@@ -1,11 +1,13 @@
 module Chess.Moves
     ( Move
     , moves
+    , move
     ) where
 
 import Chess.Board
 import Chess.Game
 
+import qualified Data.List.Safe as SL
 import Data.Maybe (isJust, Maybe (Just))
 import Control.Monad ((>=>), guard)
 
@@ -21,7 +23,32 @@ moves game = do
     rank <- [1..8]
     basic game (file, rank)
 
+-- |'move' returns a tuple consisting of the taken 'Square' and the new 'Game'
+-- state.
+move :: Game -> Move -> Maybe (Square, Game)
+move game mv = do
+    (osq, rmCur) <- update (cur mv) Nothing (board game)
+    (nsq, upd)   <- update (new mv) osq     rmCur
+    return (nsq, Game (nextPlayer game) upd)
+
 ----------------------------------  Internal  ----------------------------------
+
+-- |'update' updates the given 'Board' with the given 'Square' at 'Position'
+-- and returns a tuple of the replaced 'Square' and the new 'Board'.
+update :: Position -> Square -> Board -> Maybe (Square, Board)
+update (f, r) sq brd = do
+    rnk <- rank brd r
+    fi  <- fileIndex f
+    osq <- rnk SL.!! fi
+
+    let updateRank (i, rnk) = if i == r
+                              then map updateFile (zip ['a'..'h'] rnk)
+                              else rnk
+        updateFile (i, csq) = if i == f
+                              then sq
+                              else csq
+
+    return (osq, map updateRank (zip [8, 7..1] brd))
 
 -- |'Direction' represents a direction of movement on a 'Board'.
 data Direction = N | NE | E | SE | S | SW | W | NW
