@@ -15,6 +15,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Chess.Board
                        Chess.Moves
+                       Chess.Game
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.8 && <4.9, listsafe >=0.1 && <0.2
