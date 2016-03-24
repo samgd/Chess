@@ -1,4 +1,4 @@
-module Chess.Moves 
+module Chess.Moves
     ( Move
     , moves
     ) where
@@ -110,7 +110,7 @@ basicPawn game op@(_, rank) = do
     (Just np) <- map (`f` op) mvs
     guard $ np /= op
     return np
-    
+
 -- |'next' returns the next position in the specified 'Direction'. The 'Bool' arg
 -- is True if the 'Piece' is allowed to jump other 'Piece's. It prevents a
 -- 'Piece' from moving to a 'Square' currently occupied by another 'Piece' of
