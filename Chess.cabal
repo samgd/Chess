@@ -36,3 +36,4 @@ test-suite spec
     , chess
     , listsafe >=0.1 && <0.2
     , hspec ==2.*
+    , QuickCheck >=2.8
