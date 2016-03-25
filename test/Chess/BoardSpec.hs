@@ -19,7 +19,7 @@ spec = do
             [fileIndex f | f <- ['a'..'h']] `shouldBe` map Just [0..7] 
             
         it "returns Nothing when given an invalid file" $
-            all (== Nothing) [fileIndex f | f <- [chr 0..chr 255], f `elem` ['a'..'h']] `shouldBe` False
+            all (== Nothing) [fileIndex f | f <- [chr 0..chr 255], not $ f `elem` ['a'..'h']] `shouldBe` True
 
     describe "rankIndex" $ do
         it "returns correct index when given a valid rank" $
