@@ -73,13 +73,13 @@ basic game op@(file, rank) = do
 
 basicKing :: Game -> Position -> [Position]
 basicKing game op = do
-    (Just np) <- map (\d -> next game False d op) [N, NE, E, SE, S, SW, W, NW]
+    (Just np) <- map (\d -> next game False True d op) [N, NE, E, SE, S, SW, W, NW]
     guard $ np /= op
     return np
 
 basicQueen :: Game -> Position -> [Position]
 basicQueen game op = do
-    move <- map (next game False) [N, NE, E, SE, S, SW, W, NW]
+    move <- map (next game False True) [N, NE, E, SE, S, SW, W, NW]
     let mvs = takeWhile isJust $ iterate (>>= move) (return op)
     (Just np) <- mvs
     guard $ np /= op
@@ -87,7 +87,7 @@ basicQueen game op = do
 
 basicRook :: Game -> Position -> [Position]
 basicRook game op = do
-    move <- map (next game False) [N, E, S, W]
+    move <- map (next game False True) [N, E, S, W]
     let mvs = takeWhile isJust $ iterate (>>= move) (return op)
     (Just np) <- mvs
     guard $ np /= op
@@ -95,7 +95,7 @@ basicRook game op = do
 
 basicBishop :: Game -> Position -> [Position]
 basicBishop game op = do
-    move <- map (next game False) [NE, SE, SW, NW]
+    move <- map (next game False True) [NE, SE, SW, NW]
     let mvs = takeWhile isJust $ iterate (>>= move) (return op)
     (Just np) <- mvs
     guard $ np /= op
@@ -103,7 +103,7 @@ basicBishop game op = do
 
 basicKnight :: Game -> Position -> [Position]
 basicKnight game op = do
-    let f op (m1, m2, m3) = next game True m1 op >>= next game True m2 >>= next game False m3
+    let f op (m1, m2, m3) = next game True True m1 op >>= next game True True m2 >>= next game False True m3
         jumps = [ (N, N, W), (N, N, E), (E, E, N), (E, E, S)
                 , (S, S, E), (S, S, W), (W, W, S), (W, W, N) ]
     (Just np) <- map (f op) jumps
@@ -112,7 +112,7 @@ basicKnight game op = do
 
 basicPawn :: Game -> Position -> [Position]
 basicPawn game op@(_, rank) = do
-    let f   = foldl1 (>=>) . map (next game False)
+    let f   = foldl1 (>=>) . map (next game False True)
         plr = player game
 
         simpleMvs = case plr of
@@ -138,12 +138,14 @@ basicPawn game op@(_, rank) = do
     guard $ np /= op
     return np
 
--- |'next' returns the next position in the specified 'Direction'. The 'Bool' arg
--- is True if the 'Piece' is allowed to jump other 'Piece's. It prevents a
--- 'Piece' from moving to a 'Square' currently occupied by another 'Piece' of
--- the same player.
-next :: Game -> Bool -> Direction -> Position -> Maybe Position
-next game jumping d op@(file, rank) = do
+-- |'next' returns the next position in the specified 'Direction'.
+next :: Game             -- ^ Current 'Game'.
+     -> Bool             -- ^ True if the piece can jump another.
+     -> Bool             -- ^ True if the piece can capture another.
+     -> Direction        -- ^ 'Direction' of movement.
+     -> Position         -- ^ Current 'Position'.
+     -> Maybe Position   -- ^ New 'Position'.
+next game jumping capture d op@(file, rank) = do
     let sq = square (board game) op
     case sq of
         Nothing  -> pure ()
@@ -153,9 +155,16 @@ next game jumping d op@(file, rank) = do
         sq = square (board game) np
     case sq of
         Nothing  -> pure ()
-        (Just p) -> if not jumping
-                    then guard (pieceColor p /= player game)
-                    else pure ()
+        (Just p) -> case (jumping, capture) of
+                        -- Can't jump or capture so no move possible.
+                        (False, False) -> Nothing                             
+                        -- Can't jump but can capture. Check if capture OK.
+                        (False, True)  -> guard $ pieceColor p /= player game
+                        -- Can jump but can't capture. Check if jump OK.
+                        (True, False)  -> guard $ pieceColor p == player game
+                        -- Can jump and capture. Woohoo!
+                        (True, True)   -> pure ()
+        
     guard $ validPosition np
     return np
 
