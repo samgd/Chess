@@ -60,13 +60,25 @@ basic game op@(file, rank) = do
     guard $ validPosition op   -- Current position must be valid.
     (Just piece) <- [square (board game) op]
     np <- case pieceType piece of
-            King   -> basicKing   game op
-            Queen  -> basicQueen  game op
-            Rook   -> basicRook   game op
-            Bishop -> basicBishop game op
+            King   -> basicKing          game op
+            Queen  -> basicNoJumpNoLimit game op [N, NE, E, SE, S, SW, W, NW]
+            Rook   -> basicNoJumpNoLimit game op [N,     E,     S,     W    ]
+            Bishop -> basicNoJumpNoLimit game op [   NE,    SE,    SW,    NW]
             Knight -> basicKnight game op
             Pawn   -> basicPawn   game op
     return $ Move op np
+
+
+-- |'basicNoJumpNoLimit' returns a list of possible new positions that start
+-- from the given position and move in any ONE 'Direction' from those given in
+-- the argument list.
+basicNoJumpNoLimit :: Game -> Position -> [Direction] -> [Position]
+basicNoJumpNoLimit game op dirs = do
+    move <- map (next game False True) dirs
+    let mvs = takeWhile isJust $ iterate (>>= move) (return op)
+    (Just np) <- mvs
+    guard $ np /= op
+    return np
 
 -- The following basic_PIECE_ functions return a list of possible new positions
 -- for the given _PIECE_ at the stated position.
@@ -74,30 +86,6 @@ basic game op@(file, rank) = do
 basicKing :: Game -> Position -> [Position]
 basicKing game op = do
     (Just np) <- map (\d -> next game False True d op) [N, NE, E, SE, S, SW, W, NW]
-    guard $ np /= op
-    return np
-
-basicQueen :: Game -> Position -> [Position]
-basicQueen game op = do
-    move <- map (next game False True) [N, NE, E, SE, S, SW, W, NW]
-    let mvs = takeWhile isJust $ iterate (>>= move) (return op)
-    (Just np) <- mvs
-    guard $ np /= op
-    return np
-
-basicRook :: Game -> Position -> [Position]
-basicRook game op = do
-    move <- map (next game False True) [N, E, S, W]
-    let mvs = takeWhile isJust $ iterate (>>= move) (return op)
-    (Just np) <- mvs
-    guard $ np /= op
-    return np
-
-basicBishop :: Game -> Position -> [Position]
-basicBishop game op = do
-    move <- map (next game False True) [NE, SE, SW, NW]
-    let mvs = takeWhile isJust $ iterate (>>= move) (return op)
-    (Just np) <- mvs
     guard $ np /= op
     return np
 

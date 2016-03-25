@@ -60,7 +60,7 @@ type Position = (Char, Int)
 validPosition :: Position -> Bool
 validPosition (file, rank) = (rank > 0 && rank <= 8) && (file >= 'a' && file <= 'h')
 
--- |'empty' returns an 'Rank'.
+-- |'empty' returns an empty 'Rank'.
 empty :: Rank
 empty = replicate 8 Nothing
 
