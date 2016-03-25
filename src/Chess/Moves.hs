@@ -8,7 +8,7 @@ import Chess.Board
 import Chess.Game
 
 import qualified Data.List.Safe as SL
-import Data.Maybe (isJust, Maybe (Just))
+import Data.Maybe
 import Control.Monad ((>=>), guard)
 
 -- |'Move' represents a 'Piece' movement on a chess 'Board'.
@@ -19,19 +19,32 @@ data Move = Move { cur :: Position
 -- |'moves' returns a list of possible 'Move's.
 moves :: Game -> [Move]
 moves game = do
-    file <- ['a'..'h']
-    rank <- [1..8]
-    basic game (file, rank)
+    let mvs = basic game
 
--- |'move' returns a tuple consisting of the taken 'Square' and the new 'Game'
--- state.
+        -- 'stopCheck' returns True if the Move gets the current player's king
+        -- out of check.
+        stopCheck :: Move -> Bool
+        stopCheck mv = maybe False (not . inCheck . nextPlayer . snd) (move game mv)
+
+    if not $ inCheck game
+      then mvs
+      else filter stopCheck mvs
+
+-- |'move' plays the given 'Move' and returns a tuple consisting of the taken
+-- 'Square' and the new 'Game' state.
 move :: Game -> Move -> Maybe (Square, Game)
 move game mv = do
     (osq, rmCur) <- update (cur mv) Nothing (board game)
     (nsq, upd)   <- update (new mv) osq     rmCur
-    return (nsq, Game (nextPlayer game) upd)
+    return (nsq, nextPlayer $ Game (player game) upd)
 
 ----------------------------------  Internal  ----------------------------------
+
+-- |'inCheck' returns True if the current player's king is in check.
+inCheck :: Game -> Bool
+inCheck game = any captureKing (basic $ nextPlayer game)
+    where captureKing mv = let sq = square (board game) (new mv)
+                           in  maybe False ((==) King . pieceType) sq
 
 -- |'update' updates the given 'Board' with the given 'Square' at 'Position'
 -- and returns a tuple of the replaced 'Square' and the new 'Board'.
@@ -53,11 +66,13 @@ update (f, r) sq brd = do
 -- |'Direction' represents a direction of movement on a 'Board'.
 data Direction = N | NE | E | SE | S | SW | W | NW
 
--- |'basic' returns a list of basic 'Move's for a given Game and position.
--- It does not check for castling or en passant.
-basic :: Game -> Position -> [Move]
-basic game op@(file, rank) = do
-    guard $ validPosition op   -- Current position must be valid.
+-- |'basic' returns a list of basic 'Move's for a given Game.
+-- It does not check for castling, en passant or any issues regarding check.
+basic :: Game -> [Move]
+basic game = do
+    file <- ['a'..'h']
+    rank <- [1..8]
+    let op = (file, rank)
     (Just piece) <- [square (board game) op]
     np <- case pieceType piece of
             King   -> basicKing          game op

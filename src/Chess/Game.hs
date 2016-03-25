@@ -6,8 +6,8 @@ data Game = Game { player :: PieceColor
                  , board  :: Board
                  } deriving (Show)
 
-nextPlayer :: Game -> PieceColor
+nextPlayer :: Game -> Game
 nextPlayer game = case player game of
-                    White -> Black
-                    Black -> White
+                    White -> Game Black (board game)
+                    Black -> Game White (board game)
 
