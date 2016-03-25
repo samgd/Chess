@@ -8,8 +8,8 @@ import Chess.Board
 import Chess.Game
 
 import qualified Data.List.Safe as SL
-import Data.Maybe
-import Control.Monad ((>=>), guard)
+import Control.Monad (guard)
+import Data.Maybe (isJust)
 
 -- |'Move' represents a 'Piece' movement on a chess 'Board'.
 data Move = Move { cur :: Position
@@ -54,9 +54,9 @@ update (f, r) sq brd = do
     fi  <- fileIndex f
     osq <- rnk SL.!! fi
 
-    let updateRank (i, rnk) = if i == r
-                              then map updateFile (zip ['a'..'h'] rnk)
-                              else rnk
+    let updateRank (i, rk)  = if i == r
+                              then map updateFile (zip ['a'..'h'] rk)
+                              else rk
         updateFile (i, csq) = if i == f
                               then sq
                               else csq
@@ -70,9 +70,9 @@ data Direction = N | NE | E | SE | S | SW | W | NW
 -- It does not check for castling, en passant or any issues regarding check.
 basic :: Game -> [Move]
 basic game = do
-    file <- ['a'..'h']
-    rank <- [1..8]
-    let op = (file, rank)
+    f <- ['a'..'h']
+    r <- [1..8]
+    let op = (f, r)
     (Just piece) <- [square (board game) op]
     np <- case pieceType piece of
             King   -> basicKing          game op
@@ -88,8 +88,8 @@ basic game = do
 -- the argument list.
 basicNoJumpNoLimit :: Game -> Position -> [Direction] -> [Position]
 basicNoJumpNoLimit game op dirs = do
-    move <- map (next game False True) dirs
-    let mvs = takeWhile isJust $ iterate (>>= move) (return op)
+    mv <- map (next game False True) dirs
+    let mvs = takeWhile isJust $ iterate (>>= mv) (return op)
     (Just np) <- mvs
     guard $ np /= op
     return np
@@ -105,7 +105,7 @@ basicKing game op = do
 
 basicKnight :: Game -> Position -> [Position]
 basicKnight game op = do
-    let f op (m1, m2, m3) = next game True True m1 op >>= next game True True m2 >>= next game False True m3
+    let f pos (m1, m2, m3) = next game True True m1 pos >>= next game True True m2 >>= next game False True m3
         jumps = [ (N, N, W), (N, N, E), (E, E, N), (E, E, S)
                 , (S, S, E), (S, S, W), (W, W, S), (W, W, N) ]
     (Just np) <- map (f op) jumps
@@ -113,7 +113,7 @@ basicKnight game op = do
     return np
 
 basicPawn :: Game -> Position -> [Position]
-basicPawn game op@(_, rank) = do
+basicPawn game op@(_, rnk) = do
     let plr = player game
         dir = if plr == White then N else S
 
@@ -122,7 +122,7 @@ basicPawn game op@(_, rank) = do
 
         -- Move forward twice if yet to move and both are vacant.
         doubleMvs = let doubleHop = next game False False dir op >>= next game False False dir
-                    in case (plr, rank) of
+                    in case (plr, rnk) of
                          (White, 2) -> [doubleHop]
                          (Black, 7) -> [doubleHop]
                          _          -> []
@@ -130,8 +130,8 @@ basicPawn game op@(_, rank) = do
         -- Capture pieces that are E/W of one step foward.
         captMvs = let brd = board game
                       capt cdir = case square brd (nextPos cdir $ nextPos dir op) of
-                                    Nothing   -> []
-                                    (Just pi) -> [next game False False dir op >>= next game False True cdir]
+                                    Nothing  -> []
+                                    (Just _) -> [next game False False dir op >>= next game False True cdir]
 
                   in capt E ++ capt W
 
@@ -146,9 +146,8 @@ next :: Game             -- ^ Current 'Game'.
      -> Direction        -- ^ 'Direction' of movement.
      -> Position         -- ^ Current 'Position'.
      -> Maybe Position   -- ^ New 'Position'.
-next game jumping capture d op@(file, rank) = do
-    let sq = square (board game) op
-    case sq of
+next game jumping capture d op = do
+    case square (board game) op of
         Nothing  -> pure ()
         (Just p) -> guard (pieceColor p == player game)
 
@@ -171,12 +170,12 @@ next game jumping capture d op@(file, rank) = do
 
 -- |'nextPos' naively returns the next 'Position' in a given 'Direction'.
 nextPos :: Direction -> Position -> Position
-nextPos d (file, rank) = np where np = case d of
-                                         N  -> (     file, succ rank)
-                                         NE -> (succ file, succ rank)
-                                         E  -> (succ file,      rank)
-                                         SE -> (succ file, pred rank)
-                                         S  -> (     file, pred rank)
-                                         SW -> (pred file, pred rank)
-                                         W  -> (pred file,      rank)
-                                         NW -> (pred file, succ rank)
+nextPos d (f, r) = np where np = case d of
+                                   N  -> (     f, succ r)
+                                   NE -> (succ f, succ r)
+                                   E  -> (succ f,      r)
+                                   SE -> (succ f, pred r)
+                                   S  -> (     f, pred r)
+                                   SW -> (pred f, pred r)
+                                   W  -> (pred f,      r)
+                                   NW -> (pred f, succ r)
