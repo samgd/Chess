@@ -112,29 +112,28 @@ basicKnight game op = do
 
 basicPawn :: Game -> Position -> [Position]
 basicPawn game op@(_, rank) = do
-    let f   = foldl1 (>=>) . map (next game False True)
-        plr = player game
+    let plr = player game
+        dir = if plr == White then N else S
 
-        simpleMvs = case plr of
-                      White -> [[N]]
-                      Black -> [[S]]
+        -- Move forward once if vacant.
+        simpleMvs = [next game False False dir op]
 
-        doubleMvs = case (plr, rank) of
-                      (White, 2) -> [[N, N]]
-                      (Black, 7) -> [[S, S]]
-                      _          -> []
+        -- Move forward twice if yet to move and both are vacant.
+        doubleMvs = let doubleHop = next game False False dir op >>= next game False False dir
+                    in case (plr, rank) of
+                         (White, 2) -> [doubleHop]
+                         (Black, 7) -> [doubleHop]
+                         _          -> []
 
-        pawnCapture dir = case square (board game) (nextPos dir op) of
-                            Nothing  -> []
-                            (Just pi) -> [[dir] | pieceColor pi /= player game]
+        -- Capture pieces that are E/W of one step foward.
+        captMvs = let brd = board game
+                      capt cdir = case square brd (nextPos cdir $ nextPos dir op) of
+                                    Nothing   -> []
+                                    (Just pi) -> [next game False False dir op >>= next game False True cdir]
 
-        captMvs   = case plr of
-                      White -> pawnCapture NE ++ pawnCapture NW
-                      Black -> pawnCapture SE ++ pawnCapture SW
+                  in capt E ++ capt W
 
-        mvs = simpleMvs ++ doubleMvs ++ captMvs
-
-    (Just np) <- map (`f` op) mvs
+    (Just np) <- simpleMvs ++ doubleMvs ++ captMvs
     guard $ np /= op
     return np
 
@@ -157,14 +156,14 @@ next game jumping capture d op@(file, rank) = do
         Nothing  -> pure ()
         (Just p) -> case (jumping, capture) of
                         -- Can't jump or capture so no move possible.
-                        (False, False) -> Nothing                             
+                        (False, False) -> Nothing
                         -- Can't jump but can capture. Check if capture OK.
                         (False, True)  -> guard $ pieceColor p /= player game
                         -- Can jump but can't capture. Check if jump OK.
                         (True, False)  -> guard $ pieceColor p == player game
                         -- Can jump and capture. Woohoo!
                         (True, True)   -> pure ()
-        
+
     guard $ validPosition np
     return np
 
