@@ -83,7 +83,7 @@ initial = [ initialRank Black
           , pawns       White
           , initialRank White ]
 
--- |'fileIndex' returns the file index for a given character index.
+-- |'fileIndex' returns the haskell list index for a given file character index.
 -- The character must be 'a'-'h'.
 fileIndex :: Char -> Maybe Int
 fileIndex c = do
