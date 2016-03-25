@@ -64,10 +64,9 @@ basic game op@(file, rank) = do
             Queen  -> basicNoJumpNoLimit game op [N, NE, E, SE, S, SW, W, NW]
             Rook   -> basicNoJumpNoLimit game op [N,     E,     S,     W    ]
             Bishop -> basicNoJumpNoLimit game op [   NE,    SE,    SW,    NW]
-            Knight -> basicKnight game op
-            Pawn   -> basicPawn   game op
+            Knight -> basicKnight        game op
+            Pawn   -> basicPawn          game op
     return $ Move op np
-
 
 -- |'basicNoJumpNoLimit' returns a list of possible new positions that start
 -- from the given position and move in any ONE 'Direction' from those given in
