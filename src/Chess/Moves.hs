@@ -1,5 +1,5 @@
 module Chess.Moves
-    ( Move
+    ( Move (..)
     , moves
     , move
     ) where
@@ -26,9 +26,9 @@ moves game = do
         stopCheck :: Move -> Bool
         stopCheck mv = maybe False (not . inCheck . nextPlayer . snd) (move game mv)
 
-    if not $ inCheck game
-      then mvs
-      else filter stopCheck mvs
+    if inCheck game
+      then filter stopCheck mvs
+      else mvs
 
 -- |'move' plays the given 'Move' and returns a tuple consisting of the taken
 -- 'Square' and the new 'Game' state.
@@ -129,11 +129,12 @@ basicPawn game op@(_, rnk) = do
 
         -- Capture pieces that are E/W of one step foward.
         captMvs = let brd = board game
-                      capt cdir = case square brd (nextPos cdir $ nextPos dir op) of
+                      cdirs = if plr == White then [NE, NW] else [SE, SW]
+                      capt cdir = case square brd (nextPos cdir op) of
                                     Nothing  -> []
-                                    (Just _) -> [next game False False dir op >>= next game False True cdir]
+                                    (Just _) -> [next game False True cdir op]
 
-                  in capt E ++ capt W
+                  in concatMap capt cdirs
 
     (Just np) <- simpleMvs ++ doubleMvs ++ captMvs
     guard $ np /= op
