@@ -14,16 +14,16 @@ import Data.Maybe (isJust)
 -- |'Move' represents a 'Piece' movement on a chess 'Board'.
 data Move
     = Move Position Position
-    | EnPassant
+    | Castling
     deriving (Eq, Show)
 
 cur :: Move -> Maybe Position
 cur (Move c _) = Just c
-cur EnPassant  = Nothing
+cur Castling = Nothing
 
 new :: Move -> Maybe Position
 new (Move _ n) = Just n
-new EnPassant  = Nothing
+new Castling = Nothing
 
 -- |'moves' returns a list of possible 'Move's.
 moves :: Game -> [Move]
@@ -44,8 +44,8 @@ moves game = do
 -- reach the eighth 'Rank'.
 move :: Game -> Move -> Maybe (Square, Game)
 move game mv = case mv of
-                 (Move _ _) -> simpleMove    game mv
-                 EnPassant  -> enPassantMove game mv
+                 (Move _ _) -> simpleMove   game mv
+                 Castling   -> castlingMove game mv
 
 ----------------------------------  Internal  ----------------------------------
 
@@ -71,8 +71,8 @@ simpleMove game mv = do
     (newSq, updBrd) <- update newPos updSq rmCur
     return (newSq, nextPlayer $ updateBoard game updBrd)
 
-enPassantMove :: Game -> Move -> Maybe (Square, Game)
-enPassantMove game mv = undefined
+castlingMove :: Game -> Move -> Maybe (Square, Game)
+castlingMove game mv = undefined
 
 -- |'inCheck' returns True if the current player's king is in check.
 inCheck :: Game -> Bool
