@@ -62,17 +62,47 @@ basicMove game mv = do
 
     -- Promote pawn if pawn reaches eighth rank.
     let updSq = case (newPos, oldSq) of
-                ((_, 8), Just (Piece White Pawn)) -> Just $ Piece White Queen
-                ((_, 1), Just (Piece Black Pawn)) -> Just $ Piece Black Queen
-                _                                   -> oldSq
+                  ((_, 8), Just (Piece White Pawn)) -> Just $ Piece White Queen
+                  ((_, 1), Just (Piece Black Pawn)) -> Just $ Piece Black Queen
+                  _                                 -> oldSq
+
+    -- Set castling to False if Rook or King moved.
+    let updGame = if not $ castling game plr
+                  then game
+                  else case (oldPos, oldSq) of
+                         (('a', 1), Just (Piece White Rook)) -> updateCastling White False game
+                         (('e', 1), Just (Piece White King)) -> updateCastling White False game
+                         (('h', 1), Just (Piece White Rook)) -> updateCastling White False game
+                         (('a', 8), Just (Piece Black Rook)) -> updateCastling Black False game
+                         (('e', 8), Just (Piece Black King)) -> updateCastling Black False game
+                         (('h', 8), Just (Piece Black Rook)) -> updateCastling Black False game
+                         _                                   -> game
 
     (newSq, updBrd) <- update newPos updSq rmCur
-    return (newSq, nextPlayer $ updateBoard game updBrd)
+    return (newSq, nextPlayer $ updateBoard updGame updBrd)
 
 castlingMove :: Game -> Move -> Maybe (Square, Game)
 castlingMove game mv = do
     guard $ typ mv == Castling
-    Nothing
+
+    let kingPos = cur mv
+        rookPos = new mv
+        plr     = player game
+
+    -- Swap King and Rook.
+    (kingSq, temp1) <- update kingPos Nothing (board game)
+    king <- kingSq
+    guard $ pieceType king == King && pieceColor king == plr
+
+    (rookSq, temp2) <- update rookPos kingSq temp1
+    rook <- rookSq
+    guard $ pieceType rook == Rook && pieceColor rook == plr
+
+    (_, brd) <- update kingPos rookSq temp2
+
+    let updGame = nextPlayer $ updateCastling plr False $ updateBoard game brd
+
+    return (Nothing, updGame)
 
 -- |'inCheck' returns True if the current player's king is in check.
 inCheck :: Game -> Bool
@@ -102,7 +132,10 @@ data Direction = N | NE | E | SE | S | SW | W | NW
 
 -- |'castling' returns a list of 'Castling' 'Move's for a given Game.
 castlingMoves :: Game -> [Move]
-castlingMoves = undefined
+castlingMoves game = do
+    let plr = player game
+    guard $ castling game plr
+    [] -- TODO
 
 -- |'basicMoves' returns a list of basic 'Move's for a given Game.
 -- It does not check for castling, en passant or any issues regarding check.

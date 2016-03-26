@@ -32,3 +32,9 @@ nextPlayer game = case player game of
 -- argument.
 updateBoard :: Game -> Board -> Game
 updateBoard game brd = Game (player game) brd (castling game)
+
+updateCastling :: PieceColor -> Bool -> Game -> Game
+updateCastling pc b game = Game (player game) (board game) newCastling
+    where newCastling plr = if plr == pc
+                            then b
+                            else castling game pc
