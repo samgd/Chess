@@ -14,7 +14,7 @@ spec = do
             all validPosition [(f, r) | f <- ['a'..'h'], r <- [1..8]] `shouldBe` True
 
         it "returns False when given an invalid position" $ property $
-            \p@(f, r) -> ((f `notElem` ['a'..'h']) || (r `notElem` [1..8])) ==> validPosition p == False
+            \p@(f, r) -> ((f `notElem` ['a'..'h']) || (r `notElem` [1..8])) ==> not $ validPosition p
 
     describe "fileIndex" $ do
         it "returns correct index when given a valid file" $
@@ -30,7 +30,7 @@ spec = do
         it "returns Nothing when given an invalid rank" $ property $
             \r -> (r `notElem` [1..8]) ==> isNothing $ rankIndex r
 
-    describe "square" $ do
+    describe "square" $
         it "returns correct square for a given position" $
             map (square board) (zip ['a'..'h'] [8,7..1]) `shouldBe` sqs
 

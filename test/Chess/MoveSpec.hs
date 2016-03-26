@@ -12,57 +12,57 @@ spec = do
     describe "moves" $ do
         describe "pawns" $ do
             it "should allow white pawns to move twice if not moved" $
-                moves (Game White mvTwice) `shouldMatchList` [ Move ('b', 2) ('b', 3)
-                                                             , Move ('b', 2) ('b', 4)
-                                                             ]
+                moves (mkGame White mvTwice) `shouldMatchList` [ Move ('b', 2) ('b', 3)
+                                                               , Move ('b', 2) ('b', 4)
+                                                               ]
 
             it "should allow black pawns to move twice if not moved" $
-                moves (Game Black mvTwice) `shouldMatchList` [ Move ('b', 7) ('b', 6)
-                                                             , Move ('b', 7) ('b', 5)
-                                                             ]
+                moves (mkGame Black mvTwice) `shouldMatchList` [ Move ('b', 7) ('b', 6)
+                                                               , Move ('b', 7) ('b', 5)
+                                                               ]
 
             it "should allow white pawns to only capture diagonally" $
-                moves (Game White captDiag) `shouldMatchList` [ Move ('b', 5) ('a', 6)
-                                                              , Move ('b', 5) ('c', 6)
-                                                              ]
+                moves (mkGame White captDiag) `shouldMatchList` [ Move ('b', 5) ('a', 6)
+                                                                , Move ('b', 5) ('c', 6)
+                                                                ]
 
             it "should allow black pawns to only capture diagonally" $
-                moves (Game Black captDiag) `shouldMatchList` [ Move ('a', 6) ('a', 5)
-                                                              , Move ('a', 6) ('b', 5)
-                                                              , Move ('c', 6) ('c', 5)
-                                                              , Move ('c', 6) ('b', 5)
-                                                              ]
+                moves (mkGame Black captDiag) `shouldMatchList` [ Move ('a', 6) ('a', 5)
+                                                                , Move ('a', 6) ('b', 5)
+                                                                , Move ('c', 6) ('c', 5)
+                                                                , Move ('c', 6) ('b', 5)
+                                                                ]
 
-        describe "king in check" $ do
+        describe "king in check" $
            it "should only allow moves that stop king being in check" $
-                moves (Game Black check) `shouldMatchList` [ Move ('b', 6) ('a', 5)
-                                                           , Move ('b', 6) ('a', 6)
-                                                           , Move ('b', 6) ('a', 7)
-                                                           , Move ('b', 6) ('c', 5)
-                                                           , Move ('b', 6) ('c', 6)
-                                                           , Move ('b', 6) ('c', 7)
-                                                           ]
+                moves (mkGame Black check) `shouldMatchList` [ Move ('b', 6) ('a', 5)
+                                                             , Move ('b', 6) ('a', 6)
+                                                             , Move ('b', 6) ('a', 7)
+                                                             , Move ('b', 6) ('c', 5)
+                                                             , Move ('b', 6) ('c', 6)
+                                                             , Move ('b', 6) ('c', 7)
+                                                             ]
 
     describe "move" $ do
-        it "should only allow white player to move own pieces" $ do
-            move (Game White pawnProm) (Move ('b', 2) ('b', 1)) `shouldSatisfy` isNothing
+        it "should only allow white player to move own pieces" $
+            move (mkGame White pawnProm) (Move ('b', 2) ('b', 1)) `shouldSatisfy` isNothing
 
-        it "should only allow black player to move own pieces" $ do
-            move (Game Black pawnProm) (Move ('b', 7) ('b', 8)) `shouldSatisfy` isNothing
+        it "should only allow black player to move own pieces" $
+            move (mkGame Black pawnProm) (Move ('b', 7) ('b', 8)) `shouldSatisfy` isNothing
 
         it "should promote white pawn to queen when pawn reaches rank 8" $
-            move (Game White pawnProm) (Move ('b', 7) ('b', 8))
+            move (mkGame White pawnProm) (Move ('b', 7) ('b', 8))
             `shouldSatisfy`
             (\res -> case res >>= ((`square` ('b', 8)) . board . snd) of
-                       (Just p) -> p == Piece White Queen
-                       _        -> False)
+                       (Just (Piece White Queen)) -> True
+                       _                          -> False)
 
         it "should promote black pawn to queen when pawn reaches rank 1" $
-            move (Game Black pawnProm) (Move ('b', 2) ('b', 1))
+            move (mkGame Black pawnProm) (Move ('b', 2) ('b', 1))
             `shouldSatisfy`
             (\res -> case res >>= ((`square` ('b', 1)) . board . snd) of
-                       (Just p) -> p == Piece Black Queen
-                       _        -> False)
+                       (Just (Piece Black Queen)) -> True
+                       _                          -> False)
 
 mvTwice :: Board
 mvTwice = [ replicate 8 Nothing

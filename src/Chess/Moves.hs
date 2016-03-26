@@ -12,9 +12,18 @@ import Control.Monad (guard)
 import Data.Maybe (isJust)
 
 -- |'Move' represents a 'Piece' movement on a chess 'Board'.
-data Move = Move { cur :: Position
-                 , new :: Position
-                 } deriving (Eq, Show)
+data Move
+    = Move Position Position
+    | EnPassant
+    deriving (Eq, Show)
+
+cur :: Move -> Maybe Position
+cur (Move c _) = Just c
+cur EnPassant  = Nothing
+
+new :: Move -> Maybe Position
+new (Move _ n) = Just n
+new EnPassant  = Nothing
 
 -- |'moves' returns a list of possible 'Move's.
 moves :: Game -> [Move]
@@ -34,10 +43,17 @@ moves game = do
 -- 'Square' and the new 'Game' state. It promotes 'Pawn's to 'Queen's if they
 -- reach the eighth 'Rank'.
 move :: Game -> Move -> Maybe (Square, Game)
-move game mv = do
-    let oldPos = cur mv
-        newPos = new mv
-        plr    = player game
+move game mv = case mv of
+                 (Move _ _) -> basicMove     game mv
+                 EnPassant  -> enPassantMove game mv
+
+----------------------------------  Internal  ----------------------------------
+
+basicMove :: Game -> Move -> Maybe (Square, Game)
+basicMove game mv = do
+    oldPos <- cur mv
+    newPos <- new mv
+    let plr    = player game
 
     (oldSq, rmCur) <- update oldPos Nothing (board game)
 
@@ -53,14 +69,15 @@ move game mv = do
                 _                                   -> oldSq
 
     (newSq, updBrd) <- update newPos updSq rmCur
-    return (newSq, nextPlayer $ Game plr updBrd)
+    return (newSq, nextPlayer $ updateBoard game updBrd)
 
-----------------------------------  Internal  ----------------------------------
+enPassantMove :: Game -> Move -> Maybe (Square, Game)
+enPassantMove game mv = undefined
 
 -- |'inCheck' returns True if the current player's king is in check.
 inCheck :: Game -> Bool
 inCheck game = any captureKing (basic $ nextPlayer game)
-    where captureKing mv = let sq = square (board game) (new mv)
+    where captureKing mv = let sq = new mv >>= square (board game)
                            in  maybe False ((==) King . pieceType) sq
 
 -- |'update' updates the given 'Board' with the given 'Square' at 'Position'
