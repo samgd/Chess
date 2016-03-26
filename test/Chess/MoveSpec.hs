@@ -42,6 +42,21 @@ spec = do
                                                            , Move ('b', 6) ('c', 7)
                                                            ]
 
+    describe "move" $ do
+        it "should promote white pawn to queen when pawn reaches rank 8" $
+            move (Game White pawnProm) (Move ('b', 7) ('b', 8))
+            `shouldSatisfy`
+            (\res -> case res >>= ((`square` ('b', 8)) . board . snd) of
+                       (Just p) -> p == Piece White Queen
+                       _        -> False)
+
+        it "should promote black pawn to queen when pawn reaches rank 1" $
+            move (Game Black pawnProm) (Move ('b', 2) ('b', 1))
+            `shouldSatisfy`
+            (\res -> case res >>= ((`square` ('b', 1)) . board . snd) of
+                       (Just p) -> p == Piece Black Queen
+                       _        -> False)
+
 mvTwice :: Board
 mvTwice = [ replicate 8 Nothing
           , Nothing : (Just $ Piece Black Pawn) : replicate 6 Nothing
@@ -74,3 +89,15 @@ check = [ replicate 8 Nothing
         , Nothing : (Just $ Piece White Rook) : replicate 6 Nothing
         , replicate 8 Nothing
         ]
+
+pawnProm :: Board
+pawnProm = [ replicate 8 Nothing
+           , Nothing : (Just $ Piece White Pawn) : replicate 6 Nothing
+           , replicate 8 Nothing
+           , replicate 8 Nothing
+           , replicate 8 Nothing
+           , replicate 8 Nothing
+           , Nothing : (Just $ Piece Black Pawn) : replicate 6 Nothing
+           , replicate 8 Nothing
+           ]
+

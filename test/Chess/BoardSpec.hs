@@ -1,7 +1,7 @@
 module Chess.BoardSpec where
 
-import Data.Char (chr)
 import qualified Data.List.Safe as SL
+import Data.Maybe (isNothing)
 import Test.Hspec
 import Test.QuickCheck
 
@@ -14,21 +14,21 @@ spec = do
             all validPosition [(f, r) | f <- ['a'..'h'], r <- [1..8]] `shouldBe` True
 
         it "returns False when given an invalid position" $ property $
-            \p@(f, r) -> ((not $ f `elem` ['a'..'h']) || (not $ r `elem` [1..8])) ==> validPosition p == False
+            \p@(f, r) -> ((f `notElem` ['a'..'h']) || (r `notElem` [1..8])) ==> validPosition p == False
 
     describe "fileIndex" $ do
         it "returns correct index when given a valid file" $
             [fileIndex f | f <- ['a'..'h']] `shouldBe` map Just [0..7]
 
         it "returns Nothing when given an invalid file" $ property $
-            \f -> (not $ f `elem` ['a'..'h']) ==> fileIndex f == Nothing
+            \f -> (f `notElem` ['a'..'h']) ==> isNothing $ fileIndex f
 
     describe "rankIndex" $ do
         it "returns correct index when given a valid rank" $
             [rankIndex r | r <- [1..8]] `shouldBe` map Just [7, 6..0]
 
         it "returns Nothing when given an invalid rank" $ property $
-            \r -> (not $ r `elem` [1..8]) ==> rankIndex r == Nothing
+            \r -> (r `notElem` [1..8]) ==> isNothing $ rankIndex r
 
     describe "square" $ do
         it "returns correct square for a given position" $
@@ -36,14 +36,14 @@ spec = do
 
     describe "rank" $ do
         it "returns Nothing when given an invalid index" $ property $
-            \i -> (not $ i `elem` [1..8]) ==> rank board i == Nothing
+            \i -> (i `notElem` [1..8]) ==> isNothing $ rank board i
 
         it "returns correct rank when given a valid index" $
             [rank board r | r <- [1..8]] `shouldBe` map Just (reverse board)
 
     describe "file" $ do
         it "returns Nothing when given an invalid file" $ property $
-            \c -> (not $ c `elem` ['a'..'h']) ==> file board c == Nothing
+            \c -> (c `notElem` ['a'..'h']) ==> isNothing $ file board c
 
         it "returns correct file when given a valid index" $
             [file board f | f <- ['a'..'h']] `shouldBe` map Just (SL.transpose board)
