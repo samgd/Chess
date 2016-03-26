@@ -1,5 +1,6 @@
 module Chess.Moves
-    ( Move (..)
+    ( MoveType (..)
+    , Move (..)
     , moves
     , move
     ) where
@@ -11,49 +12,46 @@ import qualified Data.List.Safe as SL
 import Control.Monad (guard)
 import Data.Maybe (isJust)
 
--- |'Move' represents a 'Piece' movement on a chess 'Board'.
-data Move
-    = Move Position Position
+data MoveType
+    = Basic
     | Castling
     deriving (Eq, Show)
 
-cur :: Move -> Maybe Position
-cur (Move c _) = Just c
-cur Castling = Nothing
-
-new :: Move -> Maybe Position
-new (Move _ n) = Just n
-new Castling = Nothing
+-- |'Move' represents a move on a chess 'Board'.
+data Move = Move { typ :: MoveType
+                 , cur :: Position
+                 , new :: Position
+                 } deriving (Eq, Show)
 
 -- |'moves' returns a list of possible 'Move's.
 moves :: Game -> [Move]
 moves game = do
-    let mvs = basic game
-
+    let stopCheck :: Move -> Bool
         -- 'stopCheck' returns True if the Move gets the current player's king
         -- out of check.
-        stopCheck :: Move -> Bool
         stopCheck mv = maybe False (not . inCheck . nextPlayer . snd) (move game mv)
 
     if inCheck game
-      then filter stopCheck mvs
-      else mvs
+      then filter stopCheck (basicMoves game)
+      else basicMoves game ++ castlingMoves game
 
 -- |'move' plays the given 'Move' and returns a tuple consisting of the taken
--- 'Square' and the new 'Game' state. It promotes 'Pawn's to 'Queen's if they
--- reach the eighth 'Rank'.
+-- 'Square', if any, and the new 'Game' state. It promotes 'Pawn's to 'Queen's
+-- if they reach the eighth 'Rank'.
 move :: Game -> Move -> Maybe (Square, Game)
-move game mv = case mv of
-                 (Move _ _) -> simpleMove   game mv
-                 Castling   -> castlingMove game mv
+move game mv = case typ mv of
+                 Basic    -> basicMove    game mv
+                 Castling -> castlingMove game mv
 
 ----------------------------------  Internal  ----------------------------------
 
-simpleMove :: Game -> Move -> Maybe (Square, Game)
-simpleMove game mv = do
-    oldPos <- cur mv
-    newPos <- new mv
-    let plr    = player game
+basicMove :: Game -> Move -> Maybe (Square, Game)
+basicMove game mv = do
+    guard $ typ mv == Basic
+
+    let oldPos = cur mv
+        newPos = new mv
+        plr    = player game
 
     (oldSq, rmCur) <- update oldPos Nothing (board game)
 
@@ -72,12 +70,14 @@ simpleMove game mv = do
     return (newSq, nextPlayer $ updateBoard game updBrd)
 
 castlingMove :: Game -> Move -> Maybe (Square, Game)
-castlingMove game mv = undefined
+castlingMove game mv = do
+    guard $ typ mv == Castling
+    Nothing
 
 -- |'inCheck' returns True if the current player's king is in check.
 inCheck :: Game -> Bool
-inCheck game = any captureKing (basic $ nextPlayer game)
-    where captureKing mv = let sq = new mv >>= square (board game)
+inCheck game = any captureKing (basicMoves $ nextPlayer game)
+    where captureKing mv = let sq = square (board game) (new mv)
                            in  maybe False ((==) King . pieceType) sq
 
 -- |'update' updates the given 'Board' with the given 'Square' at 'Position'
@@ -100,10 +100,14 @@ update (f, r) sq brd = do
 -- |'Direction' represents a direction of movement on a 'Board'.
 data Direction = N | NE | E | SE | S | SW | W | NW
 
--- |'basic' returns a list of basic 'Move's for a given Game.
+-- |'castling' returns a list of 'Castling' 'Move's for a given Game.
+castlingMoves :: Game -> [Move]
+castlingMoves = undefined
+
+-- |'basicMoves' returns a list of basic 'Move's for a given Game.
 -- It does not check for castling, en passant or any issues regarding check.
-basic :: Game -> [Move]
-basic game = do
+basicMoves :: Game -> [Move]
+basicMoves game = do
     f <- ['a'..'h']
     r <- [1..8]
     let op = (f, r)
@@ -115,7 +119,7 @@ basic game = do
             Bishop -> basicNoJumpNoLimit game op [   NE,    SE,    SW,    NW]
             Knight -> basicKnight        game op
             Pawn   -> basicPawn          game op
-    return $ Move op np
+    return $ Move Basic op np
 
 -- |'basicNoJumpNoLimit' returns a list of possible new positions that start
 -- from the given position and move in any ONE 'Direction' from those given in
