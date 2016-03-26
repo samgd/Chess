@@ -31,12 +31,29 @@ moves game = do
       else mvs
 
 -- |'move' plays the given 'Move' and returns a tuple consisting of the taken
--- 'Square' and the new 'Game' state.
+-- 'Square' and the new 'Game' state. It promotes 'Pawn's to 'Queen's if they
+-- reach the eighth 'Rank'.
 move :: Game -> Move -> Maybe (Square, Game)
 move game mv = do
-    (osq, rmCur) <- update (cur mv) Nothing (board game)
-    (nsq, upd)   <- update (new mv) osq     rmCur
-    return (nsq, nextPlayer $ Game (player game) upd)
+    let oldPos = cur mv
+        newPos = new mv
+        plr    = player game
+
+    (oldSq, rmCur) <- update oldPos Nothing (board game)
+
+    -- Cannot move opponents pieces!
+    case oldSq of
+        Nothing  -> pure () -- OK
+        (Just p) -> guard $ pieceColor p == plr
+
+    -- Promote pawn if pawn reaches eighth rank.
+    let updSq = case (newPos, oldSq) of
+                ((_, 8), Just (Piece White Pawn)) -> Just $ Piece White Queen
+                ((_, 1), Just (Piece Black Pawn)) -> Just $ Piece Black Queen
+                _                                   -> oldSq
+
+    (newSq, updBrd) <- update newPos updSq rmCur
+    return (newSq, nextPlayer $ Game plr updBrd)
 
 ----------------------------------  Internal  ----------------------------------
 
@@ -55,13 +72,13 @@ update (f, r) sq brd = do
     osq <- rnk SL.!! fi
 
     let updateRank (i, rk)  = if i == r
-                              then map updateFile (zip ['a'..'h'] rk)
+                              then zipWith (curry updateFile) ['a'..'h'] rk
                               else rk
         updateFile (i, csq) = if i == f
                               then sq
                               else csq
 
-    return (osq, map updateRank (zip [8, 7..1] brd))
+    return (osq, zipWith (curry updateRank) [8, 7..1] brd)
 
 -- |'Direction' represents a direction of movement on a 'Board'.
 data Direction = N | NE | E | SE | S | SW | W | NW

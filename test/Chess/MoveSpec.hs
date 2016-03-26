@@ -1,6 +1,7 @@
 module Chess.MoveSpec (spec) where
 
 import Test.Hspec
+import Data.Maybe (isNothing)
 
 import Chess.Board
 import Chess.Moves
@@ -43,6 +44,12 @@ spec = do
                                                            ]
 
     describe "move" $ do
+        it "should only allow white player to move own pieces" $ do
+            move (Game White pawnProm) (Move ('b', 2) ('b', 1)) `shouldSatisfy` isNothing
+
+        it "should only allow black player to move own pieces" $ do
+            move (Game Black pawnProm) (Move ('b', 7) ('b', 8)) `shouldSatisfy` isNothing
+
         it "should promote white pawn to queen when pawn reaches rank 8" $
             move (Game White pawnProm) (Move ('b', 7) ('b', 8))
             `shouldSatisfy`
