@@ -1,7 +1,6 @@
-module Chess.MoveSpec where
+module Chess.MoveSpec (spec) where
 
 import Test.Hspec
-import Test.QuickCheck
 
 import Chess.Board
 import Chess.Moves
@@ -33,6 +32,16 @@ spec = do
                                                               , Move ('c', 6) ('b', 5)
                                                               ]
 
+        describe "king in check" $ do
+           it "should only allow moves that stop king being in check" $
+                moves (Game Black check) `shouldMatchList` [ Move ('b', 6) ('a', 5)
+                                                           , Move ('b', 6) ('a', 6)
+                                                           , Move ('b', 6) ('a', 7)
+                                                           , Move ('b', 6) ('c', 5)
+                                                           , Move ('b', 6) ('c', 6)
+                                                           , Move ('b', 6) ('c', 7)
+                                                           ]
+
 mvTwice :: Board
 mvTwice = [ replicate 8 Nothing
           , Nothing : (Just $ Piece Black Pawn) : replicate 6 Nothing
@@ -54,3 +63,14 @@ captDiag = [ replicate 8 Nothing
            , replicate 8 Nothing
            , replicate 8 Nothing
            ]
+
+check :: Board
+check = [ replicate 8 Nothing
+        , replicate 8 Nothing
+        , Nothing : (Just $ Piece Black King) : replicate 6 Nothing
+        , (Just $ Piece White Pawn) : replicate 7 Nothing
+        , replicate 8 Nothing
+        , replicate 8 Nothing
+        , Nothing : (Just $ Piece White Rook) : replicate 6 Nothing
+        , replicate 8 Nothing
+        ]
