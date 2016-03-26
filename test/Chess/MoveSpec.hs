@@ -21,20 +21,17 @@ spec = do
                                                              , Move ('b', 7) ('b', 5)
                                                              ]
 
-            it "should allow white pawns to capture diagonally" $
+            it "should allow white pawns to only capture diagonally" $
                 moves (Game White captDiag) `shouldMatchList` [ Move ('b', 5) ('a', 6)
                                                               , Move ('b', 5) ('c', 6)
                                                               ]
 
-            it "should allow black pawns to capture diagonally" $
+            it "should allow black pawns to only capture diagonally" $
                 moves (Game Black captDiag) `shouldMatchList` [ Move ('a', 6) ('a', 5)
                                                               , Move ('a', 6) ('b', 5)
                                                               , Move ('c', 6) ('c', 5)
                                                               , Move ('c', 6) ('b', 5)
                                                               ]
-
-            it "should not allow pawns to capture moving forward" $
-                moves (Game White captDiag) `shouldNotContain` [Move ('b', 5) ('b', 6)]
 
 mvTwice :: Board
 mvTwice = [ replicate 8 Nothing
