@@ -44,13 +44,13 @@ moves game = do
 -- reach the eighth 'Rank'.
 move :: Game -> Move -> Maybe (Square, Game)
 move game mv = case mv of
-                 (Move _ _) -> basicMove     game mv
+                 (Move _ _) -> simpleMove    game mv
                  EnPassant  -> enPassantMove game mv
 
 ----------------------------------  Internal  ----------------------------------
 
-basicMove :: Game -> Move -> Maybe (Square, Game)
-basicMove game mv = do
+simpleMove :: Game -> Move -> Maybe (Square, Game)
+simpleMove game mv = do
     oldPos <- cur mv
     newPos <- new mv
     let plr    = player game
