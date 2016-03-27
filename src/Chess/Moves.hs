@@ -35,16 +35,19 @@ moves game = do
       then filter stopCheck (basicMoves game)
       else basicMoves game ++ castlingMoves game
 
--- |'move' plays the given 'Move' and returns a tuple consisting of the taken
+-- |'move' plays the given 'Move' and returns a tuple consisting of the captured
 -- 'Square', if any, and the new 'Game' state. It promotes 'Pawn's to 'Queen's
 -- if they reach the eighth 'Rank'.
 move :: Game -> Move -> Maybe (Square, Game)
 move game mv = case typ mv of
                  Basic    -> basicMove    game mv
-                 Castling -> castlingMove game mv
+                 Castling -> castlingMove game mv >>= \g -> Just (Nothing, g)
 
 ----------------------------------  Internal  ----------------------------------
 
+-- |'basicMove' plays a 'Basic' 'Move' and returns the captured 'Square', if
+-- any, and the new 'Game' state. It promotes 'Pawn's to 'Queen's if they reach
+-- the eighth 'Rank.
 basicMove :: Game -> Move -> Maybe (Square, Game)
 basicMove game mv = do
     guard $ typ mv == Basic
@@ -81,7 +84,8 @@ basicMove game mv = do
     (newSq, updBrd) <- update newPos updSq rmCur
     return (newSq, nextPlayer $ updateBoard updGame updBrd)
 
-castlingMove :: Game -> Move -> Maybe (Square, Game)
+-- |'castlingMove' plays a 'Castling' 'Move' and returns the new 'Game' state.
+castlingMove :: Game -> Move -> Maybe Game
 castlingMove game mv = do
     guard $ typ mv == Castling
 
@@ -102,7 +106,7 @@ castlingMove game mv = do
 
     let updGame = nextPlayer $ updateCastling plr False $ updateBoard game brd
 
-    return (Nothing, updGame)
+    return updGame
 
 -- |'inCheck' returns True if the current player's king is in check.
 inCheck :: Game -> Bool
@@ -130,13 +134,6 @@ update (f, r) sq brd = do
 -- |'Direction' represents a direction of movement on a 'Board'.
 data Direction = N | NE | E | SE | S | SW | W | NW
 
--- |'castling' returns a list of 'Castling' 'Move's for a given Game.
-castlingMoves :: Game -> [Move]
-castlingMoves game = do
-    let plr = player game
-    guard $ castling game plr
-    [] -- TODO
-
 -- |'basicMoves' returns a list of basic 'Move's for a given Game.
 -- It does not check for castling, en passant or any issues regarding check.
 basicMoves :: Game -> [Move]
@@ -153,6 +150,36 @@ basicMoves game = do
             Knight -> basicKnight        game op
             Pawn   -> basicPawn          game op
     return $ Move Basic op np
+
+-- |'castlingMoves' returns a list of 'Castling' 'Move's for a given Game.
+castlingMoves :: Game -> [Move]
+castlingMoves game = do
+    let plr = player game
+    guard $ castling game plr
+
+    let op       = if plr == White then Black else White
+        opMvPoss = map new $ moves (nextPlayer $ updateCastling op False game)
+
+        ri     = if plr == White then 1 else 8
+        actRnk = case rank (board game) ri of
+                   Nothing  -> []
+                   (Just r) -> r
+        -- [(Rook File, Section of Rank)]. If we've got this far then castling
+        -- must be True thus neither the Rook or King have moved. Therefore we
+        -- just check if there is Nothing between the Rooks and King.
+        rkRnk = [ ('h', (Just $ Piece plr King) : replicate 2 Nothing ++ [Just $ Piece plr Rook])
+                , ('a', (Just $ Piece plr Rook) : replicate 3 Nothing ++ [Just $ Piece plr King])
+                ]
+
+    -- Actual Rank must include Section.
+    (rk, rnk) <- rkRnk
+    guard $ rnk `SL.isInfixOf` actRnk
+
+    -- Squares must not be capturable.
+    let sqFiles = if rk == 'a' then ['a'..'e'] else ['e'..'h']
+    guard $ all (`notElem` opMvPoss) [(f, ri) | f <- sqFiles]
+
+    return $ Move Castling ('e', ri) (rk, ri)
 
 -- |'basicNoJumpNoLimit' returns a list of possible new positions that start
 -- from the given position and move in any ONE 'Direction' from those given in

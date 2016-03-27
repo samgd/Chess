@@ -47,9 +47,9 @@ spec = do
                 let mvdgs = [ move (mkGame White castle) (Move Basic ('a', 1) ('a', 2))
                             , move (mkGame White castle) (Move Basic ('e', 1) ('e', 2))
                             , move (mkGame White castle) (Move Basic ('h', 1) ('h', 2))
---                            , move (mkGame Black castle) (Move Basic ('a', 8) ('a', 7))
---                            , move (mkGame Black castle) (Move Basic ('e', 8) ('e', 7))
---                            , move (mkGame Black castle) (Move Basic ('h', 8) ('h', 7))
+                            , move (mkGame Black castle) (Move Basic ('a', 8) ('a', 7))
+                            , move (mkGame Black castle) (Move Basic ('e', 8) ('e', 7))
+                            , move (mkGame Black castle) (Move Basic ('h', 8) ('h', 7))
                             ]
                     plrs = replicate 3 White ++ replicate 3 Black
                 mvdgs `shouldSatisfy` all isJust
@@ -61,7 +61,7 @@ spec = do
             it "should not return castling moves when in check" $
                 moves (mkGame Black castleCheck) `shouldSatisfy` all (\mv -> typ mv /= Castling)
 
-            it "should not return castling moves if the king can be captured" $
+            it "should not return castling moves if the king can be captured en route" $
                 moves (mkGame Black castlePass) `shouldSatisfy` all (\mv -> typ mv /= Castling)
 
             it "should return castling moves when conditions hold" $ do
@@ -151,7 +151,7 @@ castleCheck = [ (Just $ Piece Black Rook) : replicate 3 Nothing ++ [Just $ Piece
 castlePass :: Board
 castlePass = [ (Just $ Piece Black Rook) : replicate 3 Nothing ++ [Just $ Piece Black King] ++ replicate 2 Nothing ++ [Just $ Piece Black Rook]
               , replicate 8 Nothing
-              , replicate 4 (Just $ Piece White Rook) ++ replicate 4 Nothing
+              , replicate 8 (Just $ Piece White Rook)
               , replicate 8 Nothing
               , replicate 8 Nothing
               , replicate 8 Nothing
@@ -161,12 +161,12 @@ castlePass = [ (Just $ Piece Black Rook) : replicate 3 Nothing ++ [Just $ Piece 
 
 castle :: Board
 castle = [ (Just $ Piece Black Rook) : replicate 3 Nothing ++ [Just $ Piece Black King] ++ replicate 2 Nothing ++ [Just $ Piece Black Rook]
+         , (Just $ Piece Black Pawn) : replicate 6 Nothing ++ [Just $ Piece Black Pawn]
          , replicate 8 Nothing
          , replicate 8 Nothing
          , replicate 8 Nothing
          , replicate 8 Nothing
-         , replicate 8 Nothing
-         , replicate 8 Nothing
+         , (Just $ Piece White Pawn) : replicate 6 Nothing ++ [Just $ Piece White Pawn]
          , (Just $ Piece White Rook) : replicate 3 Nothing ++ [Just $ Piece White King] ++ replicate 2 Nothing ++ [Just $ Piece White Rook]
          ]
 
