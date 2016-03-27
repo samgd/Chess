@@ -1,15 +1,28 @@
-module Chess.Move.Logic
-    ( moves
+module Chess.Move
+    ( MoveType (..)
+    , Move (..)
+    , moves
     , move
     ) where
 
 import Chess.Board
 import Chess.Game
-import Chess.Move.Type
 
 import qualified Data.List.Safe as SL
 import Control.Monad (guard)
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, fromJust)
+
+data MoveType
+    = Basic
+    | Castling
+    | EnPassant
+    deriving (Eq, Show)
+
+-- |'Move' represents a move on a chess 'Board'.
+data Move = Move { typ :: MoveType
+                 , cur :: Position
+                 , new :: Position
+                 } deriving (Eq, Show)
 
 -- |'moves' returns a list of possible 'Move's.
 moves :: Game -> [Move]
@@ -19,9 +32,11 @@ moves game = do
     let stopCheck :: Move -> Bool
         stopCheck mv = maybe False (not . inCheck . nextPlayer . snd) (move game mv)
 
+        mvs = basicMoves game ++ enPassantMoves game
+
     if inCheck game
-      then filter stopCheck (basicMoves game)
-      else basicMoves game ++ castlingMoves game
+      then filter stopCheck mvs
+      else mvs ++ castlingMoves game
 
 -- |'move' plays the given 'Move' and returns a tuple consisting of the captured
 -- 'Square', if any, and the new 'Game' state. It promotes 'Pawn's to 'Queen's
@@ -29,10 +44,11 @@ moves game = do
 move :: Game -> Move -> Maybe (Square, Game)
 move game mv = do
     (sq, updGame) <- case typ mv of
-                       Basic    -> basicMove    game mv
-                       Castling -> castlingMove game mv
+                       Basic     -> basicMove     game mv
+                       Castling  -> castlingMove  game mv
+                       EnPassant -> enPassantMove game mv
 
-    return (sq, updateLast mv $ nextPlayer updGame)
+    return (sq, nextPlayer updGame)
 
 ----------------------------------  Internal  ----------------------------------
 
@@ -61,16 +77,22 @@ basicMove game mv = do
                   _                                 -> oldSq
 
     -- Set castling to False if Rook or King moved.
-    let updGame = if not $ castling game plr
-                  then game
-                  else case (oldPos, oldSq) of
-                         (('a', 1), Just (Piece White Rook)) -> updateCastling White False game
-                         (('e', 1), Just (Piece White King)) -> updateCastling White False game
-                         (('h', 1), Just (Piece White Rook)) -> updateCastling White False game
-                         (('a', 8), Just (Piece Black Rook)) -> updateCastling Black False game
-                         (('e', 8), Just (Piece Black King)) -> updateCastling Black False game
-                         (('h', 8), Just (Piece Black Rook)) -> updateCastling Black False game
-                         _                                   -> game
+    let castGame = if not $ castling game plr
+                   then game
+                   else case (oldPos, oldSq) of
+                          (('a', 1), Just (Piece White Rook)) -> updateCastling White False game
+                          (('e', 1), Just (Piece White King)) -> updateCastling White False game
+                          (('h', 1), Just (Piece White Rook)) -> updateCastling White False game
+                          (('a', 8), Just (Piece Black Rook)) -> updateCastling Black False game
+                          (('e', 8), Just (Piece Black King)) -> updateCastling Black False game
+                          (('h', 8), Just (Piece Black Rook)) -> updateCastling Black False game
+                          _                                   -> game
+
+    -- Set enPassant to new position if Pawn does double move.
+    let updGame = case (oldPos, newPos, oldSq) of
+                    ((f, 2), (_, 4), Just (Piece White Pawn)) -> updateEnPassant (Just (f, 3)) castGame
+                    ((f, 7), (_, 5), Just (Piece Black Pawn)) -> updateEnPassant (Just (f, 4)) castGame
+                    _                                         -> updateEnPassant Nothing       castGame
 
     (newSq, updBrd) <- update newPos updSq rmCur
     return (newSq, updateBoard updGame updBrd)
@@ -94,6 +116,23 @@ castlingMove game mv = do
     (Nothing, updRook) <- basicMove updKing (Move Basic rookPos updRookPos)
 
     return (Nothing, updateCastling (player game) False updRook)
+
+enPassantMove :: Game -> Move -> Maybe (Square, Game)
+enPassantMove game mv = do
+    guard $ typ mv == EnPassant
+
+    guard (case enPassant game of
+            (Just cpos) -> new mv == cpos
+            _           -> False)
+
+    let curPos = cur mv
+        newPos = new mv
+        capPos = (fst newPos, snd curPos)
+
+    (_, updCapt)   <- basicMove game (Move Basic curPos newPos)
+    (capt, updBrd) <- update capPos Nothing (board updCapt)
+
+    return (capt, updateBoard updCapt updBrd)
 
 -- |'inCheck' returns True if the current player's king is in check.
 inCheck :: Game -> Bool
@@ -137,6 +176,29 @@ basicMoves game = do
             Knight -> basicKnight        game op
             Pawn   -> basicPawn          game op
     return $ Move Basic op np
+
+-- |'enPassantMoves' returns a list of 'EnPassant' 'Move's for a given Game.
+enPassantMoves :: Game -> [Move]
+enPassantMoves game = do
+    guard $ isJust $ enPassant game
+    let epos = fromJust $ enPassant game
+        plr  = player game
+        checkDirs = case plr of
+                      White -> [NE, NW]
+                      Black -> [SE, SW]
+        r = if plr == White then 5 else 4
+
+    (f, sq) <- maybe [] (zip ['a'..'h']) (rank (board game) r)
+
+    guard $ sq == Just (Piece plr Pawn)
+
+    dir <- checkDirs
+    let cpos = (f, r)
+        npos = nextPos dir cpos
+
+    guard $ npos == epos
+
+    return $ Move EnPassant cpos npos
 
 -- |'castlingMoves' returns a list of 'Castling' 'Move's for a given Game.
 castlingMoves :: Game -> [Move]

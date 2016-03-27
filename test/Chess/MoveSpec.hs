@@ -6,8 +6,7 @@ import Control.Monad (liftM)
 import Data.Maybe (fromJust, isJust, isNothing)
 
 import Chess.Board
-import Chess.Move.Type
-import Chess.Move.Logic
+import Chess.Move
 import Chess.Game
 
 spec :: Spec
@@ -74,6 +73,13 @@ spec = do
                 moves (mkGame Black castle) `shouldSatisfy` \mvs -> all (`elem` mvs) [ Move Castling ('e', 8) ('a', 8)
                                                                                      , Move Castling ('e', 8) ('h', 8)
                                                                                      ]
+
+            it "should return enPassantMoves when conditions hold" $
+                moves (updateEnPassant (Just ('c', 6)) $ mkGame White enPassantBrd)
+                `shouldMatchList`
+                [ Move Basic     ('d', 5) ('d', 6)
+                , Move EnPassant ('d', 5) ('c', 6)
+                ]
 
     describe "move" $ do
         it "should only allow black player to move own pieces" $
@@ -152,6 +158,27 @@ spec = do
                        (Just r) -> r == (((Just $ Piece White Rook) : replicate 4 Nothing) ++ [Just $ Piece White Rook, Just $ Piece White King, Nothing])
                        _        -> False)
 
+        it "should set enPassant when pawn makes a double move" $
+            move (mkGame White initial) (Move Basic ('c', 2) ('c', 4))
+            `shouldSatisfy`
+            (\res -> case res >>= enPassant . snd of
+                       Just ('c', 3) -> True
+                       _            -> False)
+
+        it "should unset enPassant when basic non-double move is made" $
+            move (updateEnPassant (Just ('c', 3)) $ mkGame White initial) (Move Basic ('d', 2) ('d', 3))
+            `shouldSatisfy`
+            (\res -> case res >>= enPassant . snd of
+                       Nothing -> True
+                       _       -> False)
+
+        it "should capture adjacent pawn when en passant move is made" $
+            move (updateEnPassant (Just ('c', 6)) $ mkGame White enPassantBrd) (Move EnPassant ('d', 5) ('c', 6))
+            `shouldSatisfy`
+           (\res -> case liftM ((==) enPassantBrdCapt . board . snd) res of
+                      (Just b) -> b
+                      _        -> False)
+
 mvTwice :: Board
 mvTwice = [ replicate 8 Nothing
           , Nothing : (Just $ Piece Black Pawn) : replicate 6 Nothing
@@ -229,3 +256,24 @@ castle = [ (Just $ Piece Black Rook) : replicate 3 Nothing ++ [Just $ Piece Blac
          , (Just $ Piece White Rook) : replicate 3 Nothing ++ [Just $ Piece White King] ++ replicate 2 Nothing ++ [Just $ Piece White Rook]
          ]
 
+enPassantBrd :: Board
+enPassantBrd = [ replicate 8 Nothing
+               , replicate 8 Nothing
+               , replicate 8 Nothing
+               , Nothing : Nothing : (Just $ Piece Black Pawn) : (Just $ Piece White Pawn) : replicate 4 Nothing
+               , replicate 8 Nothing
+               , replicate 8 Nothing
+               , replicate 8 Nothing
+               , replicate 8 Nothing
+               ]
+
+enPassantBrdCapt :: Board
+enPassantBrdCapt = [ replicate 8 Nothing
+                   , replicate 8 Nothing
+                   , Nothing : Nothing : (Just $ Piece White Pawn) : replicate 5 Nothing
+                   , replicate 8 Nothing
+                   , replicate 8 Nothing
+                   , replicate 8 Nothing
+                   , replicate 8 Nothing
+                   , replicate 8 Nothing
+                   ]

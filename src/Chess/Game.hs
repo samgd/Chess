@@ -1,16 +1,15 @@
 module Chess.Game where
 
-import Chess.Board (PieceColor (..), Board, initial)
-import Chess.Move.Type (Move)
+import Chess.Board (PieceColor (..), Board, Position, initial)
 
-data Game = Game { player   :: PieceColor
-                 , board    :: Board
-                 , castling :: PieceColor -> Bool
-                 , lastMove :: Maybe Move
+data Game = Game { player    :: PieceColor
+                 , board     :: Board
+                 , castling  :: PieceColor -> Bool
+                 , enPassant :: Maybe Position
                  }
 
 instance Show Game where
-    show (Game p b c m) = "Game " ++ show p ++ " " ++ show b ++ " " ++ castle ++ " " ++ show m
+    show (Game p b c ep) = "Game " ++ show p ++ " " ++ show b ++ " " ++ castle ++ " " ++ show ep
         where castle = show (map (\pc -> (pc, c pc)) [White, Black])
 
 -- |'newGame' returns a new 'Game' of chess. White plays first.
@@ -27,19 +26,19 @@ mkGame p = maybeNext . updateBoard newGame
 -- 'PieceColor'.
 nextPlayer :: Game -> Game
 nextPlayer game = case player game of
-                    White -> Game Black (board game) (castling game) (lastMove game)
-                    Black -> Game White (board game) (castling game) (lastMove game)
+                    White -> Game Black (board game) (castling game) (enPassant game)
+                    Black -> Game White (board game) (castling game) (enPassant game)
 
 -- |'updateBoard' returns a 'Game' with the 'Board' changed to the 'Board'
 -- argument.
 updateBoard :: Game -> Board -> Game
-updateBoard game brd = Game (player game) brd (castling game) (lastMove game)
+updateBoard game brd = Game (player game) brd (castling game) (enPassant game)
 
 updateCastling :: PieceColor -> Bool -> Game -> Game
-updateCastling pc b game = Game (player game) (board game) newCastling (lastMove game)
+updateCastling pc b game = Game (player game) (board game) newCastling (enPassant game)
     where newCastling plr = if plr == pc
                             then b
                             else castling game pc
 
-updateLast :: Move -> Game -> Game
-updateLast m game = Game (player game) (board game) (castling game) (Just m)
+updateEnPassant :: Maybe Position -> Game -> Game
+updateEnPassant mp game = Game (player game) (board game) (castling game) mp
