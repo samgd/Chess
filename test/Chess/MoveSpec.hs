@@ -81,14 +81,14 @@ spec = do
         it "should only allow white player to move own pieces" $
             move (mkGame White pawnProm) (Move Basic ('b', 2) ('b', 1)) `shouldSatisfy` isNothing
 
-        it "basic black move should change the game player" $
+        it "should change the game player when playing a white basic move" $
             move (mkGame White initial) (Move Basic ('b', 2) ('b', 3))
             `shouldSatisfy`
             (\res -> case liftM (player . snd) res of
                        Just Black -> True
                        _          -> False)
 
-        it "basic white move should change the game player" $
+        it "should change the game player when playing a black basic move" $
             move (mkGame Black initial) (Move Basic ('b', 7) ('b', 6))
             `shouldSatisfy`
             (\res -> case liftM (player . snd) res of
@@ -109,14 +109,14 @@ spec = do
                        (Just (Piece White Queen)) -> True
                        _                          -> False)
 
-        it "black castling move should change the game player" $
+        it "should change the game player when playing a black castling move" $
             move (mkGame Black castle) (Move Castling ('e', 8) ('a', 8))
             `shouldSatisfy`
             (\res -> case liftM (player . snd) res of
                        Just White -> True
                        _          -> False)
 
-        it "white castling move should change the game player" $
+        it "should change the game player when playing a white castling move" $
             move (mkGame White castle) (Move Castling ('e', 1) ('h', 1))
             `shouldSatisfy`
             (\res -> case liftM (player . snd) res of
