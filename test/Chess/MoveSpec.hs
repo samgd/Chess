@@ -1,6 +1,8 @@
 module Chess.MoveSpec (spec) where
 
 import Test.Hspec
+
+import Control.Monad (liftM)
 import Data.Maybe (fromJust, isJust, isNothing)
 
 import Chess.Board
@@ -73,18 +75,25 @@ spec = do
                                                                                      ]
 
     describe "move" $ do
-        it "should only allow white player to move own pieces" $
-            move (mkGame White pawnProm) (Move Basic ('b', 2) ('b', 1)) `shouldSatisfy` isNothing
-
         it "should only allow black player to move own pieces" $
             move (mkGame Black pawnProm) (Move Basic ('b', 7) ('b', 8)) `shouldSatisfy` isNothing
 
-        it "should promote white pawn to queen when pawn reaches rank 8" $
-            move (mkGame White pawnProm) (Move Basic ('b', 7) ('b', 8))
+        it "should only allow white player to move own pieces" $
+            move (mkGame White pawnProm) (Move Basic ('b', 2) ('b', 1)) `shouldSatisfy` isNothing
+
+        it "basic black move should change the game player" $
+            move (mkGame White initial) (Move Basic ('b', 2) ('b', 3))
             `shouldSatisfy`
-            (\res -> case res >>= ((`square` ('b', 8)) . board . snd) of
-                       (Just (Piece White Queen)) -> True
-                       _                          -> False)
+            (\res -> case liftM (player . snd) res of
+                       Just Black -> True
+                       _          -> False)
+
+        it "basic white move should change the game player" $
+            move (mkGame Black initial) (Move Basic ('b', 7) ('b', 6))
+            `shouldSatisfy`
+            (\res -> case liftM (player . snd) res of
+                       Just White -> True
+                       _          -> False)
 
         it "should promote black pawn to queen when pawn reaches rank 1" $
             move (mkGame Black pawnProm) (Move Basic ('b', 2) ('b', 1))
@@ -93,32 +102,53 @@ spec = do
                        (Just (Piece Black Queen)) -> True
                        _                          -> False)
 
+        it "should promote white pawn to queen when pawn reaches rank 8" $
+            move (mkGame White pawnProm) (Move Basic ('b', 7) ('b', 8))
+            `shouldSatisfy`
+            (\res -> case res >>= ((`square` ('b', 8)) . board . snd) of
+                       (Just (Piece White Queen)) -> True
+                       _                          -> False)
+
+        it "black castling move should change the game player" $
+            move (mkGame Black castle) (Move Castling ('e', 8) ('a', 8))
+            `shouldSatisfy`
+            (\res -> case liftM (player . snd) res of
+                       Just White -> True
+                       _          -> False)
+
+        it "white castling move should change the game player" $
+            move (mkGame White castle) (Move Castling ('e', 1) ('h', 1))
+            `shouldSatisfy`
+            (\res -> case liftM (player . snd) res of
+                       Just Black -> True
+                       _          -> False)
+
         it "should move king to c8 and rook to d8 for black long castling" $
             move (mkGame Black castle) (Move Castling ('e', 8) ('a', 8))
             `shouldSatisfy`
             (\res -> case res >>= (`rank` 8) . board . snd of
-                       (Just r) -> r == ([Nothing, Just $ Piece Black King, Just $ Piece Black Rook] ++ replicate 5 Nothing)
+                       (Just r) -> r == ([Nothing, Nothing, Just $ Piece Black King, Just $ Piece Black Rook] ++ replicate 3 Nothing ++ [Just $ Piece Black Rook])
                        _        -> False)
 
         it "should move king to g8 and rook to f8 for black short castling" $
             move (mkGame Black castle) (Move Castling ('e', 8) ('h', 8))
             `shouldSatisfy`
             (\res -> case res >>= (`rank` 8) . board . snd of
-                       (Just r) -> r == (replicate 5 Nothing ++ [Just $ Piece Black Rook, Just $ Piece Black King, Nothing])
+                       (Just r) -> r == (((Just $ Piece Black Rook) : replicate 4 Nothing) ++ [Just $ Piece Black Rook, Just $ Piece Black King, Nothing])
                        _        -> False)
 
         it "should move king to c1 and rook to d1 for white long castling" $
             move (mkGame White castle) (Move Castling ('e', 1) ('a', 1))
             `shouldSatisfy`
-            (\res -> case res >>= (`rank` 8) . board . snd of
-                       (Just r) -> r == ([Nothing, Just $ Piece White King, Just $ Piece White Rook] ++ replicate 5 Nothing)
+            (\res -> case res >>= (`rank` 1) . board . snd of
+                       (Just r) -> r == ([Nothing, Nothing, Just $ Piece White King, Just $ Piece White Rook] ++ replicate 3 Nothing ++ [Just $ Piece White Rook])
                        _        -> False)
 
         it "should move king to g1 and rook to f1 for white short castling" $
             move (mkGame White castle) (Move Castling ('e', 1) ('h', 1))
             `shouldSatisfy`
-            (\res -> case res >>= (`rank` 8) . board . snd of
-                       (Just r) -> r == (replicate 5 Nothing ++ [Just $ Piece White Rook, Just $ Piece White King, Nothing])
+            (\res -> case res >>= (`rank` 1) . board . snd of
+                       (Just r) -> r == (((Just $ Piece White Rook) : replicate 4 Nothing) ++ [Just $ Piece White Rook, Just $ Piece White King, Nothing])
                        _        -> False)
 
 mvTwice :: Board

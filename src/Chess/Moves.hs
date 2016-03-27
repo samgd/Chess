@@ -91,22 +91,17 @@ castlingMove game mv = do
 
     let kingPos = cur mv
         rookPos = new mv
-        plr     = player game
 
-    -- Swap King and Rook.
-    (kingSq, temp1) <- update kingPos Nothing (board game)
-    king <- kingSq
-    guard $ pieceType king == King && pieceColor king == plr
+    -- Move King.
+    (updKingPos, updRookPos) <- case rookPos of
+                                  ('a', ri) -> Just (('c', ri), ('d', ri))
+                                  ('h', ri) -> Just (('g', ri), ('f', ri))
+                                  _         -> Nothing
 
-    (rookSq, temp2) <- update rookPos kingSq temp1
-    rook <- rookSq
-    guard $ pieceType rook == Rook && pieceColor rook == plr
+    (Nothing, updKing) <- basicMove game (Move Basic kingPos updKingPos)
+    (Nothing, updRook) <- basicMove (nextPlayer updKing) (Move Basic rookPos updRookPos)
 
-    (_, brd) <- update kingPos rookSq temp2
-
-    let updGame = nextPlayer $ updateCastling plr False $ updateBoard game brd
-
-    return updGame
+    return $ updateCastling (player game) False updRook
 
 -- |'inCheck' returns True if the current player's king is in check.
 inCheck :: Game -> Bool
