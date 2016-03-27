@@ -34,11 +34,14 @@ nextPlayer game = case player game of
 updateBoard :: Game -> Board -> Game
 updateBoard game brd = Game (player game) brd (castling game) (enPassant game)
 
+-- |'updateCastling' returns a 'Game' with the castling function changed to
+-- return the 'Bool' argument when given the 'PieceColor' argument.
 updateCastling :: PieceColor -> Bool -> Game -> Game
 updateCastling pc b game = Game (player game) (board game) newCastling (enPassant game)
     where newCastling plr = if plr == pc
                             then b
                             else castling game pc
 
+-- |'updateEnPassant' returns a 'Game' with enPassant set to the argument.
 updateEnPassant :: Maybe Position -> Game -> Game
 updateEnPassant mp game = Game (player game) (board game) (castling game) mp

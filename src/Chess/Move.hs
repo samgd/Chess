@@ -117,6 +117,8 @@ castlingMove game mv = do
 
     return (Nothing, updateCastling (player game) False updRook)
 
+-- |'enPassantMove' plays a 'EnPassant' 'Move' and returns the caputred 'Pawn'
+-- and the new 'Game' state. It does not change the current player.
 enPassantMove :: Game -> Move -> Maybe (Square, Game)
 enPassantMove game mv = do
     guard $ typ mv == EnPassant
