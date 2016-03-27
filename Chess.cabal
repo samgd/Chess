@@ -16,8 +16,9 @@ library
       src
   exposed-modules:
       Chess.Board
-      Chess.Moves
       Chess.Game
+      Chess.Move.Type
+      Chess.Move.Logic
   build-depends:
       base >=4.8 && <4.9
     , listsafe >=0.1 && <0.2

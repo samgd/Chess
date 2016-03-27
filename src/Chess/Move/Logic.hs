@@ -1,34 +1,22 @@
-module Chess.Moves
-    ( MoveType (..)
-    , Move (..)
-    , moves
+module Chess.Move.Logic
+    ( moves
     , move
     ) where
 
 import Chess.Board
 import Chess.Game
+import Chess.Move.Type
 
 import qualified Data.List.Safe as SL
 import Control.Monad (guard)
 import Data.Maybe (isJust)
 
-data MoveType
-    = Basic
-    | Castling
-    deriving (Eq, Show)
-
--- |'Move' represents a move on a chess 'Board'.
-data Move = Move { typ :: MoveType
-                 , cur :: Position
-                 , new :: Position
-                 } deriving (Eq, Show)
-
 -- |'moves' returns a list of possible 'Move's.
 moves :: Game -> [Move]
 moves game = do
-    let stopCheck :: Move -> Bool
         -- 'stopCheck' returns True if the Move gets the current player's king
         -- out of check.
+    let stopCheck :: Move -> Bool
         stopCheck mv = maybe False (not . inCheck . nextPlayer . snd) (move game mv)
 
     if inCheck game
@@ -39,15 +27,18 @@ moves game = do
 -- 'Square', if any, and the new 'Game' state. It promotes 'Pawn's to 'Queen's
 -- if they reach the eighth 'Rank'.
 move :: Game -> Move -> Maybe (Square, Game)
-move game mv = case typ mv of
-                 Basic    -> basicMove    game mv
-                 Castling -> castlingMove game mv >>= \g -> Just (Nothing, g)
+move game mv = do
+    (sq, updGame) <- case typ mv of
+                       Basic    -> basicMove    game mv
+                       Castling -> castlingMove game mv
+
+    return (sq, updateLast mv $ nextPlayer updGame)
 
 ----------------------------------  Internal  ----------------------------------
 
 -- |'basicMove' plays a 'Basic' 'Move' and returns the captured 'Square', if
--- any, and the new 'Game' state. It promotes 'Pawn's to 'Queen's if they reach
--- the eighth 'Rank.
+-- any, and the new 'Game' state. It does not change the current player. It
+-- promotes 'Pawn's to 'Queen's if they reach the eighth 'Rank.
 basicMove :: Game -> Move -> Maybe (Square, Game)
 basicMove game mv = do
     guard $ typ mv == Basic
@@ -82,10 +73,11 @@ basicMove game mv = do
                          _                                   -> game
 
     (newSq, updBrd) <- update newPos updSq rmCur
-    return (newSq, nextPlayer $ updateBoard updGame updBrd)
+    return (newSq, updateBoard updGame updBrd)
 
 -- |'castlingMove' plays a 'Castling' 'Move' and returns the new 'Game' state.
-castlingMove :: Game -> Move -> Maybe Game
+-- It does not change the current player.
+castlingMove :: Game -> Move -> Maybe (Square, Game)
 castlingMove game mv = do
     guard $ typ mv == Castling
 
@@ -99,9 +91,9 @@ castlingMove game mv = do
                                   _         -> Nothing
 
     (Nothing, updKing) <- basicMove game (Move Basic kingPos updKingPos)
-    (Nothing, updRook) <- basicMove (nextPlayer updKing) (Move Basic rookPos updRookPos)
+    (Nothing, updRook) <- basicMove updKing (Move Basic rookPos updRookPos)
 
-    return $ updateCastling (player game) False updRook
+    return (Nothing, updateCastling (player game) False updRook)
 
 -- |'inCheck' returns True if the current player's king is in check.
 inCheck :: Game -> Bool

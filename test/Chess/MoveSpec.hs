@@ -6,7 +6,8 @@ import Control.Monad (liftM)
 import Data.Maybe (fromJust, isJust, isNothing)
 
 import Chess.Board
-import Chess.Moves
+import Chess.Move.Type
+import Chess.Move.Logic
 import Chess.Game
 
 spec :: Spec
