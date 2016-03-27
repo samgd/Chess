@@ -91,7 +91,7 @@ basicMove game mv = do
     -- Set enPassant to new position if Pawn does double move.
     let updGame = case (oldPos, newPos, oldSq) of
                     ((f, 2), (_, 4), Just (Piece White Pawn)) -> updateEnPassant (Just (f, 3)) castGame
-                    ((f, 7), (_, 5), Just (Piece Black Pawn)) -> updateEnPassant (Just (f, 4)) castGame
+                    ((f, 7), (_, 5), Just (Piece Black Pawn)) -> updateEnPassant (Just (f, 6)) castGame
                     _                                         -> updateEnPassant Nothing       castGame
 
     (newSq, updBrd) <- update newPos updSq rmCur
