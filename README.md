@@ -5,6 +5,6 @@ Supports:
   - Castling
   - En Passant
   - Pawn Promotion (only to Queen currently)
-  - 
+
 Note:
   - Logic is (currently) inefficient
