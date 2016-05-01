@@ -90,12 +90,12 @@ basicMove game mv = do
 
     -- Set enPassant to new position if Pawn does double move.
     let updGame = case (oldPos, newPos, oldSq) of
-                    ((f, 2), (_, 4), Just (Piece White Pawn)) -> updateEnPassant (Just (f, 3)) castGame
-                    ((f, 7), (_, 5), Just (Piece Black Pawn)) -> updateEnPassant (Just (f, 6)) castGame
-                    _                                         -> updateEnPassant Nothing       castGame
+                    ((f, 2), (_, 4), Just (Piece White Pawn)) -> castGame { enPassant = Just (f, 3) }
+                    ((f, 7), (_, 5), Just (Piece Black Pawn)) -> castGame { enPassant = Just (f, 6) }
+                    _                                         -> castGame { enPassant = Nothing     }
 
     (newSq, updBrd) <- update newPos updSq rmCur
-    return (newSq, updateBoard updGame updBrd)
+    return (newSq, updGame { board = updBrd })
 
 -- |'castlingMove' plays a 'Castling' 'Move' and returns the new 'Game' state.
 -- It does not change the current player.
@@ -134,7 +134,7 @@ enPassantMove game mv = do
     (_, updCapt)   <- basicMove game (Move Basic curPos newPos)
     (capt, updBrd) <- update capPos Nothing (board updCapt)
 
-    return (capt, updateBoard updCapt updBrd)
+    return (capt, updCapt { board = updBrd })
 
 -- |'inCheck' returns True if the current player's king is in check.
 inCheck :: Game -> Bool
